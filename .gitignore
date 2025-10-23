@@ -12,6 +12,7 @@ a.out
 *.egg-info
 dist
 build
+build_eigen5
 eggs
 parts
 var

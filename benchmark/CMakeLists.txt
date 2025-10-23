@@ -1,45 +1,27 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
-PROJECT(benchmark)
-INCLUDE(ExternalProject)
+cmake_minimum_required(VERSION 3.16)
+project(benchmark LANGUAGES CXX)
 
-# Set default ExternalProject root directory
-SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
+include(FetchContent)
 
-# Add benchmark
-ExternalProject_Add(
-googlebenchmark
-URL https://github.com/google/benchmark/archive/v1.3.0.zip
-TIMEOUT 30
-CMAKE_ARGS -DCMAKE_BUILD_TYPE:STRING=Release
-# Disable install step
-INSTALL_COMMAND ""
-# Wrap download, configure and build steps in a script to log output
-LOG_DOWNLOAD ON
-LOG_CONFIGURE ON
-LOG_BUILD ON)
+FetchContent_Declare(
+  googlebenchmark
+  URL https://github.com/google/benchmark/archive/refs/tags/v1.8.5.zip
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Disable benchmark tests" FORCE)
+FetchContent_MakeAvailable(googlebenchmark)
 
-# Disable dynamic memory allocation in Eigen
-ADD_DEFINITIONS(-DEIGEN_NO_MALLOC -DUKF_DOUBLE_PRECISION)
-
-# Specify include dir
-ExternalProject_Get_Property(googlebenchmark source_dir)
-SET(googlebenchmark_dir ${source_dir})
-
-INCLUDE_DIRECTORIES(${googlebenchmark_dir}/include ../include ${eigen_dir})
-
-# Add benchmark executable target
-ADD_EXECUTABLE(benchmark
+add_executable(ukf_benchmarks
     StateVectorBenchmark.cpp
     MeasurementVectorBenchmark.cpp
     CoreBenchmark.cpp
     SquareRootCoreBenchmark.cpp
     BenchmarkMain.cpp)
 
-# Create dependency of benchmark on googlebenchmark
-ADD_DEPENDENCIES(benchmark googlebenchmark eigen3)
+set_target_properties(ukf_benchmarks PROPERTIES OUTPUT_NAME benchmark)
 
-# Specify benchmark's link libraries
-ExternalProject_Get_Property(googlebenchmark binary_dir)
-TARGET_LINK_LIBRARIES(benchmark
-    ${binary_dir}/src/${CMAKE_FIND_LIBRARY_PREFIXES}benchmark.a
-    pthread)
+add_dependencies(ukf_benchmarks eigen3)
+
+target_compile_definitions(ukf_benchmarks PRIVATE EIGEN_NO_MALLOC UKF_DOUBLE_PRECISION)
+target_include_directories(ukf_benchmarks PRIVATE ../include ${eigen_dir})
+target_link_libraries(ukf_benchmarks PRIVATE benchmark::benchmark pthread)

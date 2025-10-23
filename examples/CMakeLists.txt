@@ -1,5 +1,5 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
-PROJECT(examples)
+cmake_minimum_required(VERSION 3.16)
+project(examples)
 
 MACRO(SUBDIRLIST result curdir)
   FILE(GLOB children RELATIVE ${curdir} ${curdir}/*)

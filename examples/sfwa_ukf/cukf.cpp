@@ -40,15 +40,17 @@ using SFWA_StateVector = UKF::StateVector<
     UKF::Field<GyroBias, UKF::Vector<3>>                /* Gyro bias (body frame, rad/s) */
 >;
 
+namespace {
 /* WGS84 reference ellipsoid constants. */
-#define WGS84_A (6378137.0)
-#define WGS84_B (6356752.314245)
-#define WGS84_A2 (WGS84_A*WGS84_A)
-#define WGS84_B2 (WGS84_B*WGS84_B)
-#define WGS84_AB2 (WGS84_A2*WGS84_B2)
+inline constexpr real_t WGS84_A = real_t(6378137.0);
+inline constexpr real_t WGS84_B = real_t(6356752.314245);
+inline constexpr real_t WGS84_A2 = WGS84_A * WGS84_A;
+inline constexpr real_t WGS84_B2 = WGS84_B * WGS84_B;
+inline constexpr real_t WGS84_AB2 = WGS84_A2 * WGS84_B2;
 
-#define G_ACCEL (9.80665)
-#define RHO (1.225)
+inline constexpr real_t G_ACCEL = real_t(9.80665);
+inline constexpr real_t RHO = real_t(1.225);
+}
 
 /* SFWA vehicle dynamics model. Not used for this comparison. */
 UKF::Vector<6> x8_dynamics_model(const SFWA_StateVector &state, const UKF::Vector<3> &control) {

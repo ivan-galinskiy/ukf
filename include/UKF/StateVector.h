@@ -23,8 +23,10 @@ SOFTWARE.
 #ifndef STATEVECTOR_H
 #define STATEVECTOR_H
 
+#include <array>
 #include <limits>
 #include <tuple>
+#include <type_traits>
 #include <cstddef>
 #include <utility>
 #include <Eigen/Core>
@@ -69,23 +71,16 @@ namespace UKF {
     template <>
     inline constexpr std::size_t CovarianceDimension<Quaternion> = 3;
 
-    template <typename T>
-    constexpr T adder(T v) {
-        return v;
-    }
+    constexpr std::size_t invalid_index = std::numeric_limits<std::size_t>::max();
 
-    template <typename T, typename... Args>
-    constexpr T adder(T first, Args... args) {
-        return first + adder(args...);
-    }
-
-    /*
-    Get the dimension of the state vector by summing the dimension of all
-    fields.
-    */
+    /* Get the dimension of the state vector by summing the dimension of all fields. */
     template <typename... Fields>
     constexpr std::size_t get_composite_vector_dimension() {
-        return adder(StateVectorDimension<Fields>...);
+        if constexpr (sizeof...(Fields) == 0) {
+            return 0;
+        } else {
+            return (std::size_t{0} + ... + StateVectorDimension<Fields>);
+        }
     }
 
     /*
@@ -94,72 +89,64 @@ namespace UKF {
     */
     template <typename... Fields>
     constexpr std::size_t get_covariance_dimension() {
-        return adder(CovarianceDimension<Fields>...);
+        if constexpr (sizeof...(Fields) == 0) {
+            return 0;
+        } else {
+            return (std::size_t{0} + ... + CovarianceDimension<Fields>);
+        }
     }
 
     /*
     Get the offset of a particular field in a parameter pack of Field objects
     by matching the provided key parameter.
     */
-    template <std::size_t Offset, typename T>
+    template <std::size_t Offset, typename T, typename... Rest>
     constexpr std::size_t get_field_offset(int Key) {
-        return Key == T::key ? Offset : std::numeric_limits<std::size_t>::max();
-    }
-
-    template <std::size_t Offset, typename T1, typename T2, typename... Fields>
-    constexpr std::size_t get_field_offset(int Key) {
-        return Key == T1::key ? Offset : get_field_offset<
-            Offset + StateVectorDimension<typename T1::type>, T2, Fields...>(Key);
+        if (Key == T::key) {
+            return Offset;
+        } else if constexpr (sizeof...(Rest) > 0) {
+            return get_field_offset<Offset + StateVectorDimension<typename T::type>, Rest...>(Key);
+        } else {
+            return invalid_index;
+        }
     }
 
     /* Do the same as above, but for the covariance matrix. */
-    template <std::size_t Offset, typename T>
+    template <std::size_t Offset, typename T, typename... Rest>
     constexpr std::size_t get_field_covariance_offset(int Key) {
-        return Key == T::key ? Offset : std::numeric_limits<std::size_t>::max();
-    }
-
-    template <std::size_t Offset, typename T1, typename T2, typename... Fields>
-    constexpr std::size_t get_field_covariance_offset(int Key) {
-        return Key == T1::key ? Offset : get_field_covariance_offset<
-            Offset + CovarianceDimension<typename T1::type>, T2, Fields...>(Key);
+        if (Key == T::key) {
+            return Offset;
+        } else if constexpr (sizeof...(Rest) > 0) {
+            return get_field_covariance_offset<Offset + CovarianceDimension<typename T::type>, Rest...>(Key);
+        } else {
+            return invalid_index;
+        }
     }
 
     /* Get the order of the specified key within the field pack. */
-    template <std::size_t Offset, typename T>
+    template <std::size_t Offset, typename T, typename... Rest>
     constexpr std::size_t get_field_order(int Key) {
-        return Key == T::key ? Offset : std::numeric_limits<std::size_t>::max();
-    }
-
-    template <std::size_t Offset, typename T1, typename T2, typename... Fields>
-    constexpr std::size_t get_field_order(int Key) {
-        return Key == T1::key ? Offset : get_field_order<Offset + 1, T2, Fields...>(Key);
+        if (Key == T::key) {
+            return Offset;
+        } else if constexpr (sizeof...(Rest) > 0) {
+            return get_field_order<Offset + 1, Rest...>(Key);
+        } else {
+            return invalid_index;
+        }
     }
 
     /*
     These helper structs allow various functions to determine field types at
     compile time based only on the integer key parameter.
     */
-    template <bool condition, class T, class U>
-    struct IfHelper {
-      using type = U;
-    };
-
-    template <class T, class U>
-    struct IfHelper<true, T, U> {
-      using type = T;
-    };
-
     template <int Key, typename... Fields>
     struct FieldTypesBase {
         using type = void;
     };
 
-    template <int Key, typename T, typename... Fields>
-    struct FieldTypesBase<Key, T, Fields...> {
-        using type = typename IfHelper<
-            Key == T::key,
-            typename T::type,
-            typename FieldTypesBase<Key, Fields...>::type>::type;
+    template <int Key, typename T, typename... Rest>
+    struct FieldTypesBase<Key, T, Rest...> {
+        using type = std::conditional_t<Key == T::key, typename T::type, typename FieldTypesBase<Key, Rest...>::type>;
     };
 
     /*
@@ -174,37 +161,38 @@ namespace UKF {
 
     template <typename T>
     inline T convert_from_segment(const Vector<StateVectorDimension<T>>& state) {
-        return static_cast<T>(state);
-    }
-
-    template <>
-    inline real_t convert_from_segment<real_t>(const Vector<1>& state) {
-        return static_cast<real_t>(state(0));
+        if constexpr (std::is_same_v<T, real_t>) {
+            return static_cast<real_t>(state(0));
+        } else {
+            return static_cast<T>(state);
+        }
     }
 
     /*
     Get the size of a particular field in a parameter pack of Field objects
     by matching the provided key parameter.
     */
-    template <typename T>
+    template <typename T, typename... Rest>
     constexpr std::size_t get_field_size(int Key) {
-        return Key == T::key ? StateVectorDimension<typename T::type> : std::numeric_limits<std::size_t>::max();
-    }
-
-    template <typename T1, typename T2, typename... Fields>
-    constexpr std::size_t get_field_size(int Key) {
-        return Key == T1::key ? StateVectorDimension<typename T1::type> : get_field_size<T2, Fields...>(Key);
+        if (Key == T::key) {
+            return StateVectorDimension<typename T::type>;
+        } else if constexpr (sizeof...(Rest) > 0) {
+            return get_field_size<Rest...>(Key);
+        } else {
+            return invalid_index;
+        }
     }
 
     /* Do the same as above, but for the covariance matrix. */
-    template <typename T>
+    template <typename T, typename... Rest>
     constexpr std::size_t get_field_covariance_size(int Key) {
-        return Key == T::key ? CovarianceDimension<typename T::type> : std::numeric_limits<std::size_t>::max();
-    }
-
-    template <typename T1, typename T2, typename... Fields>
-    constexpr std::size_t get_field_covariance_size(int Key) {
-        return Key == T1::key ? CovarianceDimension<typename T1::type> : get_field_covariance_size<T2, Fields...>(Key);
+        if (Key == T::key) {
+            return CovarianceDimension<typename T::type>;
+        } else if constexpr (sizeof...(Rest) > 0) {
+            return get_field_covariance_size<Rest...>(Key);
+        } else {
+            return invalid_index;
+        }
     }
 
     /* Function for creating an array initialised to a specific value. */
@@ -349,7 +337,7 @@ public:
     /* Functions for accessing individual fields. */
     template <int Key>
     typename Detail::FieldTypes<Key, Fields...>::type get_field() const {
-        static_assert(Detail::get_field_offset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::get_field_offset<0, Fields...>(Key) != Detail::invalid_index,
             "Specified key not present in state vector");
         return Detail::convert_from_segment<typename Detail::FieldTypes<Key, Fields...>::type>(
             Base::template segment<Detail::get_field_size<Fields...>(Key)>(
@@ -358,7 +346,7 @@ public:
 
     template <int Key, typename T>
     void set_field(T in) {
-        static_assert(Detail::get_field_offset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::get_field_offset<0, Fields...>(Key) != Detail::invalid_index,
             "Specified key not present in state vector");
         Base::template segment<Detail::get_field_size<Fields...>(Key)>(
             Detail::get_field_offset<0, Fields...>(Key)) << in;
@@ -366,7 +354,7 @@ public:
 
     template <int Key>
     void set_field(Quaternion in) {
-        static_assert(Detail::get_field_offset<0, Fields...>(Key) != std::numeric_limits<std::size_t>::max(),
+        static_assert(Detail::get_field_offset<0, Fields...>(Key) != Detail::invalid_index,
             "Specified key not present in state vector");
         Base::template segment<Detail::get_field_size<Fields...>(Key)>(
             Detail::get_field_offset<0, Fields...>(Key)) << in.vec(), in.w();

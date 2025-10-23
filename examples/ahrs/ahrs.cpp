@@ -14,11 +14,13 @@ using accelerometer, gyroscope and magnetometer to estimate attitude and
 angular velocity.
 */
 
+namespace {
 /* Value of g in m/s^2. */
-#define G_ACCEL (9.80665)
+inline constexpr real_t G_ACCEL = real_t(9.80665);
 
 /* Default magnetic field norm in Gauss. */
-#define MAG_NORM (0.45)
+inline constexpr real_t MAG_NORM = real_t(0.45);
+}
 
 enum AHRS_Keys {
     /* AHRS filter fields. */

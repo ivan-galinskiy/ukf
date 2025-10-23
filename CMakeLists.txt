@@ -1,29 +1,25 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
-PROJECT(ukf)
-INCLUDE(ExternalProject)
-INCLUDE(CheckCXXCompilerFlag)
+cmake_minimum_required(VERSION 3.16)
+project(ukf LANGUAGES CXX)
 
-# Check for C++14 support.
-CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-IF(COMPILER_SUPPORTS_CXX14)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-ELSE()
-    MESSAGE(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++14 support. Please use a different C++ compiler.")
-ENDIF()
+include(ExternalProject)
+include(CheckCXXCompilerFlag)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-register -Wno-ignored-attributes")
 
 # Set default ExternalProject root directory
 SET_DIRECTORY_PROPERTIES(PROPERTIES EP_PREFIX .)
 
-# Add eigen3.2.8
+# Add Eigen dependency
 ExternalProject_Add(
 eigen3
-URL https://gitlab.com/libeigen/eigen/-/archive/3.2.8/eigen-3.2.8.tar.gz
+URL https://gitlab.com/libeigen/eigen/-/archive/5.0.0/eigen-5.0.0.tar.gz
 TIMEOUT 30
-# Apply the LLT malloc fix patch, necessary to avoid dynamic memory allocation on embedded systems.
-# This can be omitted on systems where dynamic memory allocation is acceptable.
-PATCH_COMMAND patch -p1 -t -N < ${PROJECT_SOURCE_DIR}/patch/eigen-3.2.8-no-malloc-in-llt.patch
+DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+CMAKE_ARGS -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 # Disable install step
 INSTALL_COMMAND ""
 # Wrap download, configure and build steps in a script to log output

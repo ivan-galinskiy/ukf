@@ -27,8 +27,10 @@ SOFTWARE.
 extern "C" {
 #endif
 
-#define UKF_STATE_DIM 6
-#define UKF_MEASUREMENT_DIM 9
+enum {
+    UKF_STATE_DIM = 6,
+    UKF_MEASUREMENT_DIM = 9
+};
 
 /*
 Parameters for sensor model.

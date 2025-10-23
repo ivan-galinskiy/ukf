@@ -1,5 +1,5 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
-PROJECT(ahrs)
+cmake_minimum_required(VERSION 3.16)
+project(ahrs)
 
 # Disable dynamic memory allocation in Eigen
 ADD_DEFINITIONS(-DEIGEN_NO_MALLOC -DUKF_SINGLE_PRECISION)

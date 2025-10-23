@@ -1,5 +1,5 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4 FATAL_ERROR)
-PROJECT(sfwa_ukf)
+cmake_minimum_required(VERSION 3.16)
+project(sfwa_ukf)
 
 # Disable dynamic memory allocation in Eigen
 ADD_DEFINITIONS(-DEIGEN_NO_MALLOC -DUKF_DOUBLE_PRECISION)

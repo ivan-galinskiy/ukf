@@ -1,8 +1,10 @@
 /* Selects the floating-point precision to use. */
+#if !(defined(UKF_DOUBLE_PRECISION) ^ defined(UKF_SINGLE_PRECISION))
+#  error "Define exactly one of UKF_DOUBLE_PRECISION or UKF_SINGLE_PRECISION"
+#endif
+
 #if defined(UKF_DOUBLE_PRECISION)
-  typedef double real_t;
-#elif defined(UKF_SINGLE_PRECISION)
-  typedef float real_t;
+using real_t = double;
 #else
-  #error "Define the floating-point precision using either UKF_DOUBLE_PRECISION or UKF_SINGLE_PRECISION"
+using real_t = float;
 #endif
